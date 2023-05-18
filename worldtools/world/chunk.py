@@ -45,19 +45,31 @@ class Chunk:
         return HeightMap(self, type_)
 
     def get_section(self, y):
-        for sec in range(len(self.data["Level"]["Sections"])):
-            if self.data["Level"]["Sections"][sec]["Y"] == y:
-                return ChunkSection(self, sec)
+        if "Level" in self.data:
+            for sec in range(len(self.data["Level"]["Sections"])):
+                if self.data["Level"]["Sections"][sec]["Y"] == y:
+                    return ChunkSection(self, sec)
+        else:
+            sections = self.data["sections"]
+            for sec in range(len(sections)):
+                if self.data["sections"][sec]["Y"] == y:
+                    return ChunkSection(self, sec)
         raise SectionNotPresentException(f"Section y={y} is not present in chunk {self.chunk}", (self.chunk[0], y, self.chunk[1]))
 
 class ChunkSection:
     def __init__(self, chunk: Chunk, index: int):
         self.chunk: Chunk = chunk
         self.index: int = index
-        if "Palette" not in self.chunk.data["Level"]["Sections"][index].keys():
-            raise SectionNotPresentException(f"Section y={index} is not present in chunk {self.chunk.chunk}", (self.chunk.chunk[0], index, self.chunk.chunk[1]))
-        self.palette = self.chunk.data["Level"]["Sections"][index]["Palette"]
-        self.block_states: BlockStates = BlockStates(self.chunk.data["Level"]["Sections"][index]["BlockStates"])
+        if "Level" in self.chunk.data:
+            if "Palette" not in self.chunk.data["Level"]["Sections"][index].keys():
+                raise SectionNotPresentException(f"Section y={index} is not present in chunk {self.chunk.chunk}", (self.chunk.chunk[0], index, self.chunk.chunk[1]))
+            self.palette = self.chunk.data["Level"]["Sections"][index]["Palette"]
+            self.block_states: BlockStates = BlockStates(self.chunk.data["Level"]["Sections"][index]["BlockStates"])
+        else:
+            if "palette" not in self.chunk.data["sections"][index]['block_states']:
+                raise SectionNotPresentException(f"Section y={index} is not present in chunk {self.chunk.chunk}", (self.chunk.chunk[0], index, self.chunk.chunk[1]))
+            self.palette = self.chunk.data["sections"][index]['block_states']["palette"]
+            self.block_states: BlockStates = BlockStates(self.chunk.data["sections"][index]['block_states']['data'])
 
     def get_block(self, position: Tuple[int, int, int]):
         return self.palette[self.block_states.get_palette_index_for_block(position)]
